@@ -1,23 +1,91 @@
 package it.polito.ski;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class SkiArea {
+
+	public class Slope {
+		String name, difficulty, liftName;
+
+		public Slope(String name, String difficulty, String liftName) {
+			this.name = name;
+			this.difficulty = difficulty;
+			this.liftName = liftName;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public String getDifficulty() {
+			return difficulty;
+		}
+
+		public String getLiftName() {
+			return liftName;
+		}
+		
+	}
+
+	public class Parking {
+		String name;
+		int slots;
+
+
+		public Parking(String name, int slots) {
+			this.name = name;
+			this.slots = slots;
+		}
+		public String getName() {
+			return name;
+		}
+		public int getSlots() {
+			return slots;
+		}
+	
+		
+	}
+
+	public class Lift {
+		String name;
+		LiftType type;
+		public Lift(String name, LiftType type) {
+			this.name = name;
+			this.type = type;
+		}
+		public String getName() {
+			return name;
+		}
+		public LiftType getType() {
+			return type;
+		}
+		
+	}
+	
+	private String name;
+	private final Map<String, LiftType> liftTypes = new TreeMap<>();
+	private final Map<String, Lift> lifts = new TreeMap<>();
+	private final Map<String, Slope> slopes = new TreeMap<>();
+	private final Map<String, Parking> parkings = new TreeMap<>();
+	private final Map<Parking, List<Lift>> parkLift = new HashMap<>();
 
 	/**
 	 * Creates a new ski area
 	 * @param name name of the new ski area
 	 */
 	public SkiArea(String name) {
+		this.name = name;
     }
 
 	/**
 	 * Retrieves the name of the ski area
 	 * @return name
 	 */
-	public String getName() { return null; }
+	public String getName() { return this.name; }
 
     /**
      * define a new lift type providing the code, the category (Cable Cabin, Chair, Ski-lift)
@@ -29,8 +97,10 @@ public class SkiArea {
      * @throws InvalidLiftException in case of duplicate code or if the capacity is <= 0
      */
     public void liftType(String code, String category, int capacity) throws InvalidLiftException {
-
-    }
+		if (liftTypes.containsKey(code) || capacity <= 0)
+			throw new InvalidLiftException();
+		liftTypes.put(code, new LiftType(code, category, capacity));
+	}
     
     /**
      * retrieves the category of a given lift type code
@@ -39,7 +109,9 @@ public class SkiArea {
      * @throws InvalidLiftException if the code has not been defined
      */
     public String getCategory(String typeCode) throws InvalidLiftException {
-		return null;
+		if (!liftTypes.containsKey(typeCode))
+			throw new InvalidLiftException();
+		return liftTypes.get(typeCode).getCategory();
     }
 
     /**
@@ -49,7 +121,9 @@ public class SkiArea {
      * @throws InvalidLiftException if the code has not been defined
      */
     public int getCapacity(String typeCode) throws InvalidLiftException {
-        return -1;
+		if (!liftTypes.containsKey(typeCode))
+			throw new InvalidLiftException();
+		return liftTypes.get(typeCode).getCapacity();
     }
 
 
@@ -58,7 +132,7 @@ public class SkiArea {
      * @return the list of codes
      */
 	public Collection<String> types() {
-		return null;
+		return liftTypes.keySet();
 	}
 	
 	/**
@@ -69,7 +143,9 @@ public class SkiArea {
 	 * @throws InvalidLiftException in case the lift type is not defined
 	 */
     public void createLift(String name, String typeCode) throws InvalidLiftException{
-
+		if (!liftTypes.containsKey(typeCode))
+			throw new InvalidLiftException();
+		lifts.put(name, new Lift(name, liftTypes.get(typeCode)));
     }
     
 	/**
@@ -78,7 +154,7 @@ public class SkiArea {
 	 * @return type of the lift
 	 */
 	public String getType(String lift) {
-		return null;
+		return lifts.get(lift).getType().getCode();
 	}
 
 	/**
@@ -86,7 +162,7 @@ public class SkiArea {
 	 * @return the list of names sorted alphabetically
 	 */
 	public List<String> getLifts(){
-		return null;
+		return new ArrayList<>(lifts.keySet());
     }
 
 	/**
@@ -97,7 +173,9 @@ public class SkiArea {
 	 * @throws InvalidLiftException in case the lift has not been defined
 	 */
     public void createSlope(String name, String difficulty, String lift) throws InvalidLiftException {
-
+		if (!lifts.containsKey(lift))
+			throw new InvalidLiftException();
+		slopes.put(name, new Slope(name, difficulty, lift));
     }
     
     /**
@@ -106,7 +184,7 @@ public class SkiArea {
      * @return difficulty
      */
 	public String getDifficulty(String slopeName) {
-		return null;
+		return slopes.get(slopeName).getDifficulty();
 	}
 
 	/**
@@ -115,7 +193,7 @@ public class SkiArea {
 	 * @return starting lift
 	 */
 	public String getStartLift(String slopeName) {
-		return null;
+		return slopes.get(slopeName).getLiftName();
 	}
 
 	/**
@@ -124,7 +202,7 @@ public class SkiArea {
 	 * @return list of slopes
 	 */
     public Collection<String> getSlopes(){
-		return null;
+		return slopes.entrySet().stream().map(Map.Entry::getKey).collect(Collectors.toList());
     }
 
     /**
@@ -134,7 +212,10 @@ public class SkiArea {
      * @return the list of slopes
      */
     public Collection<String> getSlopesFrom(String lift){
-		return null;
+		return slopes.entrySet().stream()
+			.filter(entry -> entry.getValue().getLiftName().equals(lift))
+			.map(Map.Entry::getKey)
+			.collect(Collectors.toList());
     }
 
     /**
@@ -143,7 +224,9 @@ public class SkiArea {
      * @param slots	slots available in the parking
      */
     public void createParking(String name, int slots){
-
+		Parking temp = new Parking(name, slots);
+		parkings.put(name, temp);
+		parkLift.put(temp, new ArrayList<>());
     }
 
     /**
@@ -152,7 +235,7 @@ public class SkiArea {
      * @return number of slots
      */
 	public int getParkingSlots(String parking) {
-		return -1;
+		return parkings.get(parking).getSlots();
 	}
 
 	/**
@@ -161,7 +244,7 @@ public class SkiArea {
 	 * @param parking	parking name
 	 */
 	public void liftServedByParking(String lift, String parking) {
-
+		parkLift.get(parkings.get(parking)).add(lifts.get(lift));
 	}
 
 	
@@ -171,7 +254,7 @@ public class SkiArea {
 	 * @return the list of lifts
 	 */
 	public Collection<String> servedLifts(String parking) {
-		return null;
+		return parkLift.get(parkings.get(parking)).stream().map(val -> val.getName()).collect(Collectors.toList());
 	}
 
 	/**
@@ -183,6 +266,10 @@ public class SkiArea {
 	 * @return true if the parking is proportionate
 	 */
 	public boolean isParkingProportionate(String parkingName) {
+		int size = parkings.get(parkingName).getSlots();
+		int totalCapacity = parkLift.get(parkings.get(parkingName)).stream().collect(Collectors.summingInt(val -> val.getType().getCapacity()));
+		if (size/totalCapacity < 30)
+			return true;
 		return false;
 	}
 
@@ -202,7 +289,32 @@ public class SkiArea {
 	 * @throws InvalidLiftException in case of duplicate type or non-existent lift type
 	 */
     public void readLifts(String path) throws IOException, InvalidLiftException {
+		Collection<String> content; 
+		try (BufferedReader in = new BufferedReader(new FileReader(path))) {
+			content = in.lines().collect(Collectors.toList());
+		} catch (IOException e) {
+			System.err.println(e.getMessage());
+			throw new IOException();
+		}
+		for (String temp: content) {
+			if (temp == null) { throw new IOException(); }
+		
+			String[] check = temp.toString().split(";");
+			if ((check[0].equals("T") && check.length < 4) ||
+				(check[0].equals("L") && check.length < 3))
+					{ continue; }
+			else {
+				if (check[0].strip().equals("T")) {
+					liftType(check[1].strip(), check[2].strip(), Integer.valueOf(check[3].strip()));
+				}
+				else if (check[0].equals("L")) {
+					createLift(check[1].strip(), check[2].strip());
+				}
+				else
+					continue;
+			}
 
+		}
     }
 
 }
